@@ -63,20 +63,22 @@ class UserLogin(ViewSet):
         req_body = json.loads(request.body)
         email = req_body.get("email_id")
         user = User.objects.filter(email_id=email).first()
+        # if night shift user query is login_time__lte
+        # if day shift user query is login_time__gte
         if not user:
             return Response({"message":"user not found"},status=401)   
-        dupRecoed = AttendanceLogs.objects.filter(login_time__gte=today,user=user).values().first()
+        dupRecoed = AttendanceLogs.objects.filter(login_time__lte=today,user=user).values().first()
         if dupRecoed:
             print(dupRecoed)
             in_time = dupRecoed['login_time']
             time_diff = logout_time-in_time
-            AttendanceLogs.objects.filter(login_time__gte=today,user=user).update(logout_time=logout_time)  
+            AttendanceLogs.objects.filter(login_time__lte=today,user=user).update(logout_time=logout_time)  
         print(str(time_diff))
         dateStr = str(time_diff).split(":")
         print(dateStr)
         if int(dateStr[0]) >= 9:
             print("in........")
-            AttendanceLogs.objects.filter(login_time__gte=today,user=user).update(is_present=True)
+            AttendanceLogs.objects.filter(login_time__lte=today,user=user).update(is_present=True)
 
         
         if dupRecoed:
