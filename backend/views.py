@@ -66,21 +66,16 @@ class UserLogin(ViewSet):
         # if night shift user query is login_time__lte
         # if day shift user query is login_time__gte
         if not user:
-            return Response({"message":"user not found"},status=401)   
-        dupRecoed = AttendanceLogs.objects.filter(login_time__lte=today,user=user).values().first()
+            return Response({"message":"user not found"},status=401) 
+        if user.is_night_shift:  
+            dupRecoed = AttendanceLogs.objects.filter(login_time__lte=today,user=user)
+        else:
+            dupRecoed = AttendanceLogs.objects.filter(login_time__gte=today,user=user)
         if dupRecoed:
-            print(dupRecoed)
-            in_time = dupRecoed['login_time']
+            in_time = dupRecoed.first().login_time
             time_diff = logout_time-in_time
-            AttendanceLogs.objects.filter(login_time__lte=today,user=user).update(logout_time=logout_time)  
-        print(str(time_diff))
+            dupRecoed.update(logout_time=logout_time,work_hours=time_diff)
         dateStr = str(time_diff).split(":")
-        print(dateStr)
         if int(dateStr[0]) >= 9:
-            print("in........")
-            AttendanceLogs.objects.filter(login_time__lte=today,user=user).update(is_present=True)
-
-        
-        if dupRecoed:
-            print("present")
-        return Response("success",status=200)
+            dupRecoed.update(is_present=True,work_hours=time_diff)
+        return Response({"message":"successfully logged out","loggoff_time":logout_time},status=200)

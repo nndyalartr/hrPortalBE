@@ -29,6 +29,7 @@ class User(models.Model):
     ctc=models.IntegerField(null=True)
     is_pf_eligible=models.BooleanField(null=True)
     is_esi_eligible=models.BooleanField(null=True)
+    is_night_shift=models.BooleanField(default=False,null=False)
 
 
 class AttendanceLogs(models.Model):
@@ -39,3 +40,4 @@ class AttendanceLogs(models.Model):
     login_time=models.DateTimeField(null=True)
     logout_time=models.DateTimeField(null=True)
     is_present=models.BooleanField(default=False,null=True)
+    work_hours = models.TextField(null=True)
