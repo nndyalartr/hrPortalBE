@@ -1,1 +1,13 @@
 __pycache__
+*.py[cod]
+.env
+.Python
+lib/
+lib64/
+wheels/
+venv/
+/site
+*.pyc
+*~
+*.swp
+

@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from corehr.models import User,AttendanceLogs
 from django.utils import timezone
+from datetime import timedelta
+import numpy
 import json
 import datetime
 # Create your views here.
@@ -70,7 +72,9 @@ class UserLogin(ViewSet):
         if user.is_night_shift:  
             dupRecoed = AttendanceLogs.objects.filter(login_time__lte=today,user=user)
         else:
-            dupRecoed = AttendanceLogs.objects.filter(login_time__gte=today,user=user)
+            dupRecoed = AttendanceLogs.objects.filter(login_time__gte=today,user=user)        
+        if not dupRecoed:
+            return Response({"message":"loogin first"},status=403)
         if dupRecoed:
             in_time = dupRecoed.first().login_time
             time_diff = logout_time-in_time
@@ -79,3 +83,16 @@ class UserLogin(ViewSet):
         if int(dateStr[0]) >= 9:
             dupRecoed.update(is_present=True,work_hours=time_diff)
         return Response({"message":"successfully logged out","loggoff_time":logout_time},status=200)
+    
+class LeaveDetails(ViewSet):
+    def list(self,request):        
+        email = request.GET.get("email_id")
+        user = User.objects.filter(email_id=email).first()
+        today = timezone.localtime()+timedelta(days=1)
+        today_str = str(today)
+        today_str = today_str.split(" ")[0]
+        bd_holidays = ["2023-09-07"]
+        bd_cal = numpy.busdaycalendar(weekmask="1111100", holidays=bd_holidays)
+        count = numpy.busday_count('2023-09-01',today_str,busdaycal=bd_cal)
+        present_count = AttendanceLogs.objects.filter(user=user,is_present=True).values("is_present").all()
+        return Response({"present_days":len(present_count),"absent_days":count-len(present_count)},status=200)

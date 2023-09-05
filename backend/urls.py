@@ -27,6 +27,9 @@ router.register(
 router.register(
     "login",views.UserLogin,basename="UserLogin"
 )
+router.register(
+    "leave-details",views.LeaveDetails,basename="LeaveDetails"
+)
 
 
 
