@@ -30,6 +30,9 @@ router.register(
 router.register(
     "leave-details",views.LeaveDetails,basename="LeaveDetails"
 )
+router.register(
+    "attendance-details",views.AttendanceDetails,basename="AttendanceDetails"
+)
 
 
 

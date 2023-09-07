@@ -3,10 +3,10 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from corehr.models import User,AttendanceLogs
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta,datetime
+import calendar
 import numpy
 import json
-import datetime
 # Create your views here.
 class CreateUser(ViewSet):
     def create(self,request):
@@ -52,12 +52,21 @@ class UserLogin(ViewSet):
         user = User.objects.filter(email_id=email).first()
         if not user:
             return Response({"message":"user not found"},status=401)  
-        dupRecoed = AttendanceLogs.objects.filter(login_time__gte=is_today_check,user=user).first()
-        if dupRecoed:
-            return Response({"message":"already logged in"},status=403)
-           
+        create_all_logs = AttendanceLogs.objects.filter(login_time__month=today.month).values("login_time").all()
+        if not create_all_logs:
+            for x in range(calendar.monthrange(today.year, today.month)[1]):
+                da_te=datetime(today.year, today.month, x+1)
+                week =da_te.strftime('%A')
+                if x+1 == today.day:
+                    AttendanceLogs.objects.create(login_time=today,user=user,created_at=da_te,week_day=week)
+                else:
+                    AttendanceLogs.objects.create(user=user,created_at=da_te,week_day=week)
         else:
-            login = AttendanceLogs.objects.create(user=user,login_time=today,is_present=False)
+            dupRecoed = AttendanceLogs.objects.filter(login_time__gte=is_today_check,user=user).first()
+            if dupRecoed:
+                return Response({"message":"already logged in"},status=403)           
+            else:
+                login = AttendanceLogs.objects.create(user=user,login_time=today,is_present=False)
         return Response("success",status=200)
     def patch(self,request):
         today = timezone.localdate()
@@ -96,3 +105,17 @@ class LeaveDetails(ViewSet):
         count = numpy.busday_count('2023-09-01',today_str,busdaycal=bd_cal)
         present_count = AttendanceLogs.objects.filter(user=user,is_present=True).values("is_present").all()
         return Response({"present_days":len(present_count),"absent_days":count-len(present_count)},status=200)
+
+class AttendanceDetails(ViewSet):
+    def list(self,request):
+        currentDay = datetime.now().day
+        print(currentDay)
+        email = request.GET.get("email_id")
+        user = User.objects.filter(email_id=email).first()
+        if not user:
+            return Response({"message":"User not found"},status=401)
+        data = AttendanceLogs.objects.filter(user=user).order_by("created_at").values().all()
+        if data:
+            return Response(data,status=200)
+        else:
+            return Response({"message":"no data"},status=204)

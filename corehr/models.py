@@ -1,5 +1,6 @@
 from django.db import models
 import uuid
+from django.utils import timezone
 # Create your models here.
 class User(models.Model):
     id = models.UUIDField(
@@ -41,3 +42,5 @@ class AttendanceLogs(models.Model):
     logout_time=models.DateTimeField(null=True)
     is_present=models.BooleanField(default=False,null=True)
     work_hours = models.TextField(null=True)
+    created_at=models.DateField(null=True)
+    week_day=models.TextField(null=True)

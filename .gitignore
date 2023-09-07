@@ -10,4 +10,6 @@ venv/
 *.pyc
 *~
 *.swp
+*f2py.exe
+*pip3.11.exe
 
