@@ -28,6 +28,9 @@ router.register(
     "login",views.UserLogin,basename="UserLogin"
 )
 router.register(
+    "user-login",views.UserSessionLogin,basename="UserSessionLogin"
+)
+router.register(
     "leave-details",views.LeaveDetails,basename="LeaveDetails"
 )
 router.register(

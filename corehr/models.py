@@ -31,6 +31,7 @@ class User(models.Model):
     is_pf_eligible=models.BooleanField(null=True)
     is_esi_eligible=models.BooleanField(null=True)
     is_night_shift=models.BooleanField(default=False,null=False)
+    password=models.TextField(null=True)
 
 
 class AttendanceLogs(models.Model):

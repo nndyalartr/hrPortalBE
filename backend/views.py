@@ -4,6 +4,11 @@ from rest_framework.viewsets import ViewSet
 from corehr.models import User,AttendanceLogs
 from django.utils import timezone
 from datetime import timedelta,datetime
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt import authentication
 import calendar
 import numpy
 import json
@@ -34,7 +39,8 @@ class CreateUser(ViewSet):
                                 maritial_status=req_dict.get("maritial_status"),
                                 ctc=req_dict.get("ctc"),
                                 is_pf_eligible=req_dict.get("is_pf_eligible"),
-                                is_esi_eligible=req_dict.get("is_esi_eligible")
+                                is_esi_eligible=req_dict.get("is_esi_eligible"),
+                                password=req_dict.get("password")
                                   )
 
         return Response(req_dict,status=200)
@@ -62,7 +68,8 @@ class UserLogin(ViewSet):
                 else:
                     AttendanceLogs.objects.create(user=user,created_at=da_te,week_day=week)
         else:
-            dupRecoed = AttendanceLogs.objects.filter(login_time__gte=is_today_check,user=user).first()
+
+            dupRecoed = AttendanceLogs.objects.filter(login_time__gte=is_today_check,user=user,created_at=is_today_check).update(login_time=today)
             if dupRecoed:
                 return Response({"message":"already logged in"},status=403)           
             else:
@@ -92,21 +99,50 @@ class UserLogin(ViewSet):
         if int(dateStr[0]) >= 9:
             dupRecoed.update(is_present=True,work_hours=time_diff)
         return Response({"message":"successfully logged out","loggoff_time":logout_time},status=200)
-    
+
+class UserSessionLogin(ViewSet):
+    def create(self,request):
+        rd = request.data
+        email = rd.get("email")
+        password = rd.get("password")
+        user = User.objects.filter(email_id__iexact=email)[0]
+        print(user)
+        if user:
+            print("innnn")
+            refresh = RefreshToken.for_user(user)
+            print("after refersh..")
+            res = {
+                "refresh":str(refresh),
+                "access":str(refresh.access_token)
+            }
+            return Response(res,status=200)
+        else:
+            return Response({"message":"Login Failed"},status=401)
+        
+
 class LeaveDetails(ViewSet):
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def list(self,request):        
+        print("in..............")
         email = request.GET.get("email_id")
         user = User.objects.filter(email_id=email).first()
+        print(user)
+        if not user:
+            return Response({"message":"not found"},status=401)
         today = timezone.localtime()+timedelta(days=1)
         today_str = str(today)
         today_str = today_str.split(" ")[0]
-        bd_holidays = ["2023-09-07"]
+        bd_holidays = ["2023-09-05"]
         bd_cal = numpy.busdaycalendar(weekmask="1111100", holidays=bd_holidays)
         count = numpy.busday_count('2023-09-01',today_str,busdaycal=bd_cal)
         present_count = AttendanceLogs.objects.filter(user=user,is_present=True).values("is_present").all()
         return Response({"present_days":len(present_count),"absent_days":count-len(present_count)},status=200)
 
 class AttendanceDetails(ViewSet):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def list(self,request):
         currentDay = datetime.now().day
         print(currentDay)
@@ -115,6 +151,7 @@ class AttendanceDetails(ViewSet):
         if not user:
             return Response({"message":"User not found"},status=401)
         data = AttendanceLogs.objects.filter(user=user).order_by("created_at").values().all()
+        
         if data:
             return Response(data,status=200)
         else:
