@@ -1,11 +1,11 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 import uuid
 from django.utils import timezone
+from django.conf import settings
 # Create your models here.
-class User(models.Model):
-    id = models.UUIDField(
-        default=uuid.uuid4,max_length=500,primary_key=True,editable=False
-    )
+class UserBasicDetails(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     emp_no=models.CharField()
     emp_name = models.TextField()
     first_name=models.TextField()
@@ -31,17 +31,28 @@ class User(models.Model):
     is_pf_eligible=models.BooleanField(null=True)
     is_esi_eligible=models.BooleanField(null=True)
     is_night_shift=models.BooleanField(default=False,null=False)
-    password=models.TextField(null=True)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True)
+
 
 
 class AttendanceLogs(models.Model):
     id = models.UUIDField(
         default=uuid.uuid4,max_length=500,primary_key=True,editable=False
     )
-    user=models.ForeignKey(User,on_delete=models.CASCADE)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True)
     login_time=models.DateTimeField(null=True)
     logout_time=models.DateTimeField(null=True)
     is_present=models.BooleanField(default=False,null=True)
     work_hours = models.TextField(null=True)
     created_at=models.DateField(null=True)
     week_day=models.TextField(null=True)
+
+
+class Events(models.Model):
+    id = models.UUIDField(
+        default=uuid.uuid4,max_length=500,primary_key=True,editable=False
+    )
+    name = models.TextField()
+    date = models.DateField()
+    shift = models.TextField()
+    event_type = models.TextField()

@@ -22,10 +22,16 @@ router = routers.SimpleRouter()
 app_name = "backend"
 
 router.register(
-    "test",views.CreateUser,basename="CreateUser"
+    "user-details",views.CreateUserBasicDetails,basename="CreateUser"
 )
 router.register(
-    "login",views.UserLogin,basename="UserLogin"
+    "my-details",views.GetMydetails, basename="GetMydetails"
+)
+router.register(
+    "CreateAuthUser",views.CreateAuthUser,basename="CreateAuthUser"
+)
+router.register(
+    "attendance-punch",views.AttendancePunching,basename="AttendancePunching"
 )
 router.register(
     "user-login",views.UserSessionLogin,basename="UserSessionLogin"
@@ -36,9 +42,19 @@ router.register(
 router.register(
     "attendance-details",views.AttendanceDetails,basename="AttendanceDetails"
 )
+router.register(
+    "event-details",views.EventDetails,basename="EventDetails"
+)
 
-
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # ...
 ]
+
+# urlpatterns = [
+#     path('', include(router.urls)),
+# ]
