@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
-from corehr.models import UserBasicDetails,AttendanceLogs,Events
+from corehr.models import UserBasicDetails,AttendanceLogs,Events,Leaveapprovals
 from django.utils import timezone
 from datetime import timedelta,datetime
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -31,9 +31,7 @@ class GetMydetails(ViewSet):
     permission_classes = [IsAuthenticated]
     def list(self,request):
         email = request.GET.get("user_email")
-        print(email)
         result = UserBasicDetails.objects.filter(email_id=email).values().first()
-        print(result)
         return Response(result,status=200)
 class CreateUserBasicDetails(ViewSet):
     authentication_classes = [JWTAuthentication]
@@ -78,25 +76,29 @@ class AttendancePunching(ViewSet):
     permission_classes = [IsAuthenticated]
     def create(self,request):        
         today = timezone.localtime()
-        is_today_check=timezone.localdate()
-        
-        req_body = json.loads(request.body) 
-        print(req_body)       
-        email = req_body["user_email"]
-        
+        is_today_check=timezone.localdate()       
+        req_body = json.loads(request.body)   
+        email = req_body["user_email"]        
         user = User.objects.filter(email=email).first()
-        print(".......",user)
         if not user:
             return Response({"message":"user not found"},status=401)  
-        create_all_logs = AttendanceLogs.objects.filter(login_time__month=today.month,user=user).values("login_time").all()
+        create_all_logs = AttendanceLogs.objects.filter(login_time__month=today.month,user=user,leave_details="").values("login_time").all()
+        leave_days = AttendanceLogs.objects.filter(created_at__month=today.month,user=user)
+        existing_days = []
+        if len(leave_days):
+            for days in leave_days:
+                existing_days.append(days.created_at)
         if not create_all_logs:
             for x in range(calendar.monthrange(today.year, today.month)[1]):
                 da_te=datetime(today.year, today.month, x+1)
                 week =da_te.strftime('%A')
-                if x+1 == today.day:
-                    AttendanceLogs.objects.create(login_time=today,user=user,created_at=da_te,week_day=week)
-                else:
-                    AttendanceLogs.objects.create(user=user,created_at=da_te,week_day=week)
+                if datetime.date(da_te) not in existing_days:
+                    if x+1 == today.day:
+                        AttendanceLogs.objects.create(login_time=today,user=user,created_at=da_te,week_day=week)
+                    else:
+                        AttendanceLogs.objects.create(user=user,created_at=da_te,week_day=week)
+                elif datetime.date(da_te) in existing_days:
+                    AttendanceLogs.objects.filter(created_at=da_te).update(login_time=today)
 
             return Response({"message":"created records for the month and logged in"},status=200)
         else:
@@ -108,6 +110,7 @@ class AttendancePunching(ViewSet):
                 return Response({"message":"Already logged in"},status=200)
             else:
                 return Response({"message":"Something Went Wrong"},status=500)
+        # return Response({"message":"Something Went Wrong"},status=500)
     def patch(self,request):
         today = timezone.localdate()
         logout_time = timezone.localtime()
@@ -144,7 +147,9 @@ class UserSessionLogin(ViewSet):
             refresh = RefreshToken.for_user(user)
             res = {
                 "refresh":str(refresh),
-                "access":str(refresh.access_token)
+                "access":str(refresh.access_token),
+                "role":user.role,
+                "name":user.first_name
             }
             return Response(res,status=200)
         else:
@@ -175,11 +180,12 @@ class AttendanceDetails(ViewSet):
     permission_classes = [IsAuthenticated]
     def list(self,request):
         currentDay = datetime.now().day
+        today = timezone.localtime()
         email = request.GET.get("email_id")
         user = User.objects.filter(email=email).first()
         if not user:
             return Response({"message":"User not found"},status=401)
-        data = AttendanceLogs.objects.filter(user=user).order_by("created_at").values().all()
+        data = AttendanceLogs.objects.filter(user=user,created_at__month=today.month).order_by("created_at").values().all()
         
         if data:
             return Response(data,status=200)
@@ -208,3 +214,128 @@ class EventDetails(ViewSet):
             return Response(res,status=200)
         else:
             return Response([],status=204)
+        
+class LeaveApply(ViewSet):
+    def create(self,request):
+        req_user = request.data.get("email")
+        leave_details = request.data.get("leaves")
+        leave_type = request.data.get("leave_type")
+        leave_reason = request.data.get("leave_reason")
+        user_query = User.objects.filter(email=req_user).prefetch_related("leader_name").first()
+        result = Leaveapprovals.objects.create(leave_details=leave_details,leave_type=leave_type,leave_reason=leave_reason,applied_by=user_query,approver=user_query.leader_name,status="pending")
+        return Response({"message":"Suucessfully applied leave"},status=200)
+    
+    def list(self,request):
+        req_user = request.GET.get("email")
+        user = User.objects.filter(email=req_user).prefetch_related("leader_name").first()
+        context = []
+        res = Leaveapprovals.objects.filter(applied_by=user).prefetch_related("approver").values()
+        for item in res:
+            data_dict = {}
+            no_of_leaves = 0
+            date_strings = []            
+            for leave in item["leave_details"]:                
+                date_strings.append(leave['date'])
+                if leave['session'] == 'fullDay':
+                    no_of_leaves += 1
+                else:
+                    no_of_leaves += 0.5
+
+            date_objects = [datetime.strptime(date_str, '%Y-%m-%d').date() for date_str in date_strings]
+            data_dict['id'] = item['id']
+            data_dict['reason'] = item['leave_reason']
+            data_dict['type'] = item['leave_type']
+            data_dict["leaves"] = item['leave_details']
+            data_dict['status'] = item['status']
+            data_dict['leaveCount'] = no_of_leaves
+            data_dict['approver'] = user.leader_name.first_name
+            data_dict['startDate'] = min(date_objects)
+            data_dict['endDate'] = max(date_objects)
+            context.append(data_dict)
+        return Response(context,status=200)
+    
+class LeaveApproval(ViewSet):
+    def patch(self,request):
+        id = request.data.get("id")
+        action = request.data.get("action")
+        res = Leaveapprovals.objects.filter(id=id).update(status=action)
+        leave_obj = Leaveapprovals.objects.get(id=id)
+        for leave in leave_obj.leave_details:
+            pp = AttendanceLogs.objects.filter(user=leave_obj.applied_by,created_at = datetime.strptime(leave['date'], '%Y-%m-%d').date())
+            if pp:
+                pp.update(leave_details=leave['session'])
+            else:
+                leave_day = datetime.strptime(leave['date'], '%Y-%m-%d').date()
+                da_te=datetime(leave_day.year, leave_day.month, leave_day.day)
+                week =da_te.strftime('%A')
+                AttendanceLogs.objects.create(user=leave_obj.applied_by,created_at=da_te,week_day=week,leave_details=leave['session'])
+        if res  == 1:
+            return Response({"message":"approved leave request"},status=200)
+        else:
+            return Response({"message":"something went wrong"},status=500)
+    def list(self,request):
+        email = request.GET.get("email")
+        user = User.objects.filter(email=email).first()
+        my_list = Leaveapprovals.objects.filter(approver=user,status="pending").prefetch_related("applied_by")
+        context = []
+        for item in my_list:
+            no_of_leaves = 0
+            date_strings = [] 
+            start_session =''
+            end_session =''           
+            for leave in item.leave_details:
+                date_strings.append(leave['date'])              
+                if leave['session'] == 'fullDay':
+                    no_of_leaves += 1
+                else:
+                    no_of_leaves += 0.5
+            date_objects = [datetime.strptime(date_str, '%Y-%m-%d').date() for date_str in date_strings]
+            for leave in item.leave_details:
+                if str(min(date_objects)) == str(leave['date']):
+                    start_session = leave['session']
+                elif str(max(date_objects)) == str(leave['date']):
+                    end_session = leave['session']
+            data_dict ={}
+            data_dict['id'] = item.id
+            data_dict["applied_by"] = item.applied_by.first_name
+            data_dict["leave_count"] = no_of_leaves
+            data_dict['startDate'] = min(date_objects)
+            data_dict['start_session'] = start_session
+            data_dict['endDate'] = max(date_objects)
+            data_dict['end_session'] = end_session
+            data_dict['reason'] = item.leave_reason
+            context.append(data_dict)
+        if context:
+            return Response(context,status=200)
+        else:
+            return Response([],status=204)
+ 
+        try:
+            # Customize these parameters to match your PostgreSQL configuration
+            db_name = 'postgres'
+            db_user = 'postgres'
+            db_password = 'Ravi%1106'
+            backup_file = 'backup_file_name.sql'
+
+            # Use subprocess to call pg_dump
+            subprocess.run([
+            'pg_dump',
+            '-U', db_user,
+            '-h', 'localhost',
+            '--no-password',
+            db_name,
+            '-f', backup_file
+        ])
+            # subprocess.run([
+            #     r'C:\Program Files\PostgreSQL\15\bin\pg_dump.exe','-U', db_user,
+            #     '-h', 'localhost',
+            #     '--no-password',
+            #     db_name,
+            #      backup_file
+            #     # ... other arguments
+            # ])
+          
+            return Response({'message': 'Database backup successful'}, status=200)
+        except Exception as e:
+            return Response({'message': str(e)}, status=500)
+            # return Response("success",status=200)

@@ -43,6 +43,7 @@ class AttendanceLogs(models.Model):
     login_time=models.DateTimeField(null=True)
     logout_time=models.DateTimeField(null=True)
     is_present=models.BooleanField(default=False,null=True)
+    leave_details= models.TextField(null=True)
     work_hours = models.TextField(null=True)
     created_at=models.DateField(null=True)
     week_day=models.TextField(null=True)
@@ -56,3 +57,14 @@ class Events(models.Model):
     date = models.DateField()
     shift = models.TextField()
     event_type = models.TextField()
+
+class Leaveapprovals(models.Model):
+    id = models.UUIDField(
+        default=uuid.uuid4,max_length=500,primary_key=True,editable=False
+    )
+    leave_type = models.TextField(null=False,default="")
+    leave_reason = models.TextField(null=False,default="")
+    applied_by = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="applied_by")
+    approver = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="approver")
+    leave_details = models.JSONField()
+    status = models.TextField()

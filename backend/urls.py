@@ -45,6 +45,13 @@ router.register(
 router.register(
     "event-details",views.EventDetails,basename="EventDetails"
 )
+router.register(
+    "leave-apply",views.LeaveApply,basename="LeaveApply"
+)
+router.register(
+    "leave-approval",views.LeaveApproval,basename="LeaveApproval"
+)
+
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
