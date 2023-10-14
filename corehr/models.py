@@ -47,6 +47,7 @@ class AttendanceLogs(models.Model):
     work_hours = models.TextField(null=True)
     created_at=models.DateField(null=True)
     week_day=models.TextField(null=True)
+    remarks = models.TextField(null=True,default="")
 
 
 class Events(models.Model):
@@ -68,3 +69,17 @@ class Leaveapprovals(models.Model):
     approver = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="approver")
     leave_details = models.JSONField()
     status = models.TextField()
+
+class AttendanceRegularization(models.Model):
+    id = models.UUIDField(
+        default=uuid.uuid4,max_length=500,primary_key=True,editable=False
+    )
+    attendance_id = models.UUIDField()
+    date = models.DateField(null=True)
+    login_time = models.DateTimeField(null=True)
+    logout_time = models.DateTimeField(null=True)
+    working_hours = models.TextField(null=True)
+    reason = models.TextField()
+    status = models.TextField()
+    applied_by = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="reg_applied_by")
+    approver = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="reg_approver")

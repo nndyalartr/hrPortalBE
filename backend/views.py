@@ -10,6 +10,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt import authentication
 from users_api.models import User
+from .bussiness_logic import AttendanceRelatedLogics
 import calendar
 import numpy
 import json
@@ -82,8 +83,10 @@ class AttendancePunching(ViewSet):
         user = User.objects.filter(email=email).first()
         if not user:
             return Response({"message":"user not found"},status=401)  
-        create_all_logs = AttendanceLogs.objects.filter(login_time__month=today.month,user=user,leave_details="").values("login_time").all()
+        create_all_logs = AttendanceLogs.objects.filter(login_time__month=today.month,user=user).exclude(leave_details="")
         leave_days = AttendanceLogs.objects.filter(created_at__month=today.month,user=user)
+        holidays = Events.objects.filter(event_type="Holiday",date__month=today.month)
+        print(holidays)
         existing_days = []
         if len(leave_days):
             for days in leave_days:
@@ -92,13 +95,22 @@ class AttendancePunching(ViewSet):
             for x in range(calendar.monthrange(today.year, today.month)[1]):
                 da_te=datetime(today.year, today.month, x+1)
                 week =da_te.strftime('%A')
+                week_off = ['Saturday','Sunday']
                 if datetime.date(da_te) not in existing_days:
                     if x+1 == today.day:
-                        AttendanceLogs.objects.create(login_time=today,user=user,created_at=da_te,week_day=week)
+                        if week in week_off:
+                            AttendanceLogs.objects.create(login_time=today,user=user,created_at=da_te,week_day=week,remarks="Week-Off")
+                        else:
+                            AttendanceLogs.objects.create(login_time=today,user=user,created_at=da_te,week_day=week)
                     else:
-                        AttendanceLogs.objects.create(user=user,created_at=da_te,week_day=week)
-                elif datetime.date(da_te) in existing_days:
-                    AttendanceLogs.objects.filter(created_at=da_te).update(login_time=today)
+                        if week in week_off:
+                            AttendanceLogs.objects.create(user=user,created_at=da_te,week_day=week,remarks="Week-Off")
+                        else:
+                            AttendanceLogs.objects.create(user=user,created_at=da_te,week_day=week)
+                # elif datetime.date(da_te) in existing_days:
+                #     AttendanceLogs.objects.filter(created_at=da_te).update(login_time=today)
+            for holiday in holidays:
+                holiday_update = AttendanceLogs.objects.filter(created_at=holiday.date).update(remarks="Holiday")
 
             return Response({"message":"created records for the month and logged in"},status=200)
         else:
@@ -133,8 +145,8 @@ class AttendancePunching(ViewSet):
             time_diff = logout_time-in_time
             dupRecoed.update(logout_time=logout_time,work_hours=time_diff)
         dateStr = str(time_diff).split(":")
-        if int(dateStr[0]) >= 9:
-            dupRecoed.update(is_present=True,work_hours=time_diff)
+        if int(dateStr[0]) >= 8:
+            dupRecoed.update(is_present=True,work_hours=time_diff,remarks="present")
         return Response({"message":"successfully logged out","loggoff_time":logout_time},status=200)
 
 class UserSessionLogin(ViewSet):
@@ -185,7 +197,7 @@ class AttendanceDetails(ViewSet):
         user = User.objects.filter(email=email).first()
         if not user:
             return Response({"message":"User not found"},status=401)
-        data = AttendanceLogs.objects.filter(user=user,created_at__month=today.month).order_by("created_at").values().all()
+        data = AttendanceLogs.objects.filter(user=user,created_at__lte=today).order_by("created_at").values().all()
         
         if data:
             return Response(data,status=200)
@@ -193,6 +205,8 @@ class AttendanceDetails(ViewSet):
             return Response({"message":"no data"},status=204)
         
 class EventDetails(ViewSet):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def create(self,request):
         name = request.data.get("name")
         date = request.data.get("date")
@@ -216,6 +230,8 @@ class EventDetails(ViewSet):
             return Response([],status=204)
         
 class LeaveApply(ViewSet):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def create(self,request):
         req_user = request.data.get("email")
         leave_details = request.data.get("leaves")
@@ -255,6 +271,8 @@ class LeaveApply(ViewSet):
         return Response(context,status=200)
     
 class LeaveApproval(ViewSet):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def patch(self,request):
         id = request.data.get("id")
         action = request.data.get("action")
@@ -264,11 +282,18 @@ class LeaveApproval(ViewSet):
             pp = AttendanceLogs.objects.filter(user=leave_obj.applied_by,created_at = datetime.strptime(leave['date'], '%Y-%m-%d').date())
             if pp:
                 pp.update(leave_details=leave['session'])
+                if leave['session'] == 'fullDay':
+                    pp.update(remarks = "leave")
+                else:
+                    pp.update(remarks = "H/A")
             else:
                 leave_day = datetime.strptime(leave['date'], '%Y-%m-%d').date()
                 da_te=datetime(leave_day.year, leave_day.month, leave_day.day)
                 week =da_te.strftime('%A')
-                AttendanceLogs.objects.create(user=leave_obj.applied_by,created_at=da_te,week_day=week,leave_details=leave['session'])
+                if leave['session'] == 'fullDay':
+                    AttendanceLogs.objects.create(user=leave_obj.applied_by,created_at=da_te,week_day=week,leave_details=leave['session'],remarks = "leave")                    
+                else:
+                    AttendanceLogs.objects.create(user=leave_obj.applied_by,created_at=da_te,week_day=week,leave_details=leave['session'],remarks = "H/A")
         if res  == 1:
             return Response({"message":"approved leave request"},status=200)
         else:
@@ -310,32 +335,33 @@ class LeaveApproval(ViewSet):
         else:
             return Response([],status=204)
  
-        try:
-            # Customize these parameters to match your PostgreSQL configuration
-            db_name = 'postgres'
-            db_user = 'postgres'
-            db_password = 'Ravi%1106'
-            backup_file = 'backup_file_name.sql'
+class AttendanceRegularize(ViewSet,AttendanceRelatedLogics):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    def list(self,request):
+        result = self.attendance_regularize_det(request)
+        return Response(result['absent_logs'],status=result["status"])
+    
+class ApplyAttendanceRegularize(ViewSet,AttendanceRelatedLogics):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    def create(self,request):
+        result = self.attendance_regularize_apply(request)
+        return Response(result,status=result['status'])
+    
+class ListAttendanceRegularize(ViewSet,AttendanceRelatedLogics):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    def list(self,request):
+        result = self.attendance_regularize_list(request)
+        return Response(result['data'],status=result['status'])
 
-            # Use subprocess to call pg_dump
-            subprocess.run([
-            'pg_dump',
-            '-U', db_user,
-            '-h', 'localhost',
-            '--no-password',
-            db_name,
-            '-f', backup_file
-        ])
-            # subprocess.run([
-            #     r'C:\Program Files\PostgreSQL\15\bin\pg_dump.exe','-U', db_user,
-            #     '-h', 'localhost',
-            #     '--no-password',
-            #     db_name,
-            #      backup_file
-            #     # ... other arguments
-            # ])
-          
-            return Response({'message': 'Database backup successful'}, status=200)
-        except Exception as e:
-            return Response({'message': str(e)}, status=500)
-            # return Response("success",status=200)
+class ApproveAttendanceRegularize(ViewSet,AttendanceRelatedLogics):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    def patch(self,request):
+        result = self.attendance_regularize_approve_final(request)
+        return Response(result,status=result['status'])
+    def list(self,request):
+        result = self.attendance_regularize_approve(request)
+        return Response(result['data'],status=result['status'])
