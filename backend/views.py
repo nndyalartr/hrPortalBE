@@ -182,10 +182,15 @@ class LeaveDetails(ViewSet):
         today_str = str(today)
         today_str = today_str.split(" ")[0]
         bd_holidays = ["2023-09-05"]
+
         bd_cal = numpy.busdaycalendar(weekmask="1111100", holidays=bd_holidays)
-        count = numpy.busday_count('2023-09-01',today_str,busdaycal=bd_cal)
-        present_count = AttendanceLogs.objects.filter(user=user,is_present=True).values("is_present").all()
-        return Response({"present_days":len(present_count),"absent_days":count-len(present_count)},status=200)
+        first_day_of_month = today.replace(day=1)
+        day_one = first_day_of_month.date()
+        print(first_day_of_month.date())
+        
+        count = numpy.busday_count(day_one,today_str,busdaycal=bd_cal)
+        present_count = AttendanceLogs.objects.filter(user=user,is_present=True,created_at__month = today.month,created_at__lte=today).values("is_present").all()
+        return Response({"present_days":len(present_count),"absent_days":count-len(present_count),"leaves_remaining":user.leaves_remaining},status=200)
 
 class AttendanceDetails(ViewSet):
     authentication_classes = [JWTAuthentication]
