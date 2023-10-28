@@ -22,7 +22,7 @@ router = routers.SimpleRouter()
 app_name = "backend"
 
 router.register(
-    "user-details",views.CreateUserBasicDetails,basename="CreateUser"
+    "user-register" , views.CreateUser ,basename="CreateUser"
 )
 router.register(
     "my-details",views.GetMydetails, basename="GetMydetails"

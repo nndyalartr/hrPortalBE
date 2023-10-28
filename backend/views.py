@@ -10,8 +10,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt import authentication
 from users_api.models import User
-from .bussiness_logic import AttendanceRelatedLogics
+from .bussiness_logic import AttendanceRelatedLogics,UserRelatedLogics
 import calendar
+from django.db.models import Q
 import numpy
 import json
 # Create your views here.
@@ -23,10 +24,14 @@ class CreateAuthUser(ViewSet):
             password = req_dict.get("password"),
             first_name=req_dict.get("first_name"),
             last_name=req_dict.get("last_name"),
-            username = req_dict.get("email")
+            username = req_dict.get("email"),
+            role = req_dict.get("designation")
         )
         return Response("created",status=200)
-    
+class CreateUser(ViewSet,UserRelatedLogics):
+    def create(self,request):
+        result = self.create_user(request)        
+        return Response(result,status=result["status"])
 class GetMydetails(ViewSet):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -34,43 +39,6 @@ class GetMydetails(ViewSet):
         email = request.GET.get("user_email")
         result = UserBasicDetails.objects.filter(email_id=email).values().first()
         return Response(result,status=200)
-class CreateUserBasicDetails(ViewSet):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-    def create(self,request):
-        req_dict=json.loads(request.body)
-        user = User.objects.filter(email=req_dict["email_id"]).first()
-        res = UserBasicDetails.objects.create(emp_no=req_dict.get("emp_no"),
-                                emp_name=req_dict.get("emp_name"),
-                                first_name=req_dict.get("first_name"),
-                                last_name=req_dict.get("last_name"),
-                                email_id=req_dict.get("email_id"),
-                                father_name=req_dict.get("father_name"),
-                                name_as_aadhar=req_dict.get("name_as_aadhar"),
-                                emergency_contact_name=req_dict.get("emergency_contact_name"),
-                                emergency_contact=req_dict.get("emergency_contact"),
-                                aadhar_number=req_dict.get("aadhar_number"),
-                                mobile_number=req_dict.get("mobile_number"),
-                                designation=req_dict.get("designation"),
-                                location=req_dict.get("location"),
-                                department=req_dict.get("department"),
-                                permanent_address=req_dict.get("permanent_address"),
-                                temporary_address=req_dict.get("temporary_address"),
-                                date_of_joining=req_dict.get("date_of_joining"),
-                                date_of_birth=req_dict.get("date_of_birth"),
-                                gender=req_dict.get("gender"),
-                                pan=req_dict.get("pan"),
-                                maritial_status=req_dict.get("maritial_status"),
-                                ctc=req_dict.get("ctc"),
-                                is_pf_eligible=req_dict.get("is_pf_eligible"),
-                                is_esi_eligible=req_dict.get("is_esi_eligible"),
-                                user=user
-                                  )
-
-        return Response(req_dict,status=200)
-    def list(self,request):   
-        res = UserBasicDetails.objects.all()
-        return Response(res.values(),status=200)
     
 class AttendancePunching(ViewSet):
     authentication_classes = [JWTAuthentication]
@@ -86,7 +54,6 @@ class AttendancePunching(ViewSet):
         create_all_logs = AttendanceLogs.objects.filter(login_time__month=today.month,user=user).exclude(leave_details="")
         leave_days = AttendanceLogs.objects.filter(created_at__month=today.month,user=user)
         holidays = Events.objects.filter(event_type="Holiday",date__month=today.month)
-        print(holidays)
         existing_days = []
         if len(leave_days):
             for days in leave_days:
@@ -186,11 +153,24 @@ class LeaveDetails(ViewSet):
         bd_cal = numpy.busdaycalendar(weekmask="1111100", holidays=bd_holidays)
         first_day_of_month = today.replace(day=1)
         day_one = first_day_of_month.date()
-        print(first_day_of_month.date())
         
         count = numpy.busday_count(day_one,today_str,busdaycal=bd_cal)
-        present_count = AttendanceLogs.objects.filter(user=user,is_present=True,created_at__month = today.month,created_at__lte=today).values("is_present").all()
-        return Response({"present_days":len(present_count),"absent_days":count-len(present_count),"leaves_remaining":user.leaves_remaining},status=200)
+        present_count = 0
+        abscent_count = 0
+        leave_count = 0
+        att_logs = AttendanceLogs.objects.filter(user=user ,created_at__month = today.month,created_at__lte=today)
+        week_list = ["Sunday","Saturday"]
+        for item in att_logs:
+            # if item.is_present or item.remarks == "Holiday" or item.week_day in week_list:
+            if item.is_present:
+                present_count += 1
+            elif not item.is_present and item.leave_details == "fullDay":
+                leave_count += 1
+            elif not item.is_present and (item.leave_details == "s-1" or item.leave_details == "s-2"):
+                leave_count += .5
+            elif  item.leave_details is None and not item.is_present and item.week_day not in week_list:
+                abscent_count += 1
+        return Response({"present_days":present_count,"absent_days":abscent_count,"leaves_remaining":user.leaves_remaining,"leaves_utilized":leave_count},status=200)
 
 class AttendanceDetails(ViewSet):
     authentication_classes = [JWTAuthentication]
