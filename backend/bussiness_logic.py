@@ -1,7 +1,7 @@
 from datetime import timedelta,datetime
 import json
 from django.utils import timezone
-from corehr.models import UserBasicDetails,AttendanceLogs,Events,Leaveapprovals,AttendanceRegularization
+from corehr.models import UserBasicDetails,AttendanceLogs,Events,Leaveapprovals,AttendanceRegularization,Resignation
 from users_api.models import User
 class UserRelatedLogics():
     def create_user(self,request):
@@ -129,3 +129,87 @@ class AttendanceRelatedLogics():
                 return({"message":"Successfully Updated","status":200})
             else:
                 return({"message":"something Wnt Wrong","status":500})
+            
+class ResignationRelatedLogics(object):
+    def apply_resignation(self,request):
+        req_data = request.data
+        print(req_data)
+        user = User.objects.get(email=req_data['user_email'])
+        res = Resignation.objects.create(resignation_date=req_data['resignation_date'],
+                                         personal_phone_no=req_data['personal_phone_no'],
+                                         personal_mail_id=req_data['personal_mail_id'],
+                                         resignation_reason=req_data['resignation_reason'],
+                                         status="pending",
+                                         applied_by=user,
+                                         approver=user.leader_name
+                                         )
+        if res:
+            return({"message":"Resignation Submitted Successfully","status":200})
+        else:
+            return({"message":"something went wrong","status":500})
+        
+    def get_all_resignations(self,request):
+        id = request.GET.get("user_email")
+        user = User.objects.get(email=id)        
+        result = Resignation.objects.filter(approver=user,status="pending")
+        if result:
+            array = []
+            for res in result: 
+                dict__ = {}
+                dict__["id"] = res.id
+                dict__["resignation_date"] = res.resignation_date
+                dict__["resignation_reason"] = res.resignation_reason
+                dict__["status"] = res.status
+                dict__["applied_by"] = res.applied_by.first_name
+                array.append(dict__)
+            return({"data":array,"status":200})
+        else:
+            return({"data":[],"status":204})
+    def get_resignation_status(self,request):
+        id = request.GET.get("user_email")
+        user = User.objects.get(email=id)        
+        result = Resignation.objects.filter(applied_by=user)
+        if result:
+            array = []
+            for res in result: 
+                dict__ = {}
+                dict__["id"] = res.id
+                dict__["resignation_date"] = res.resignation_date
+                dict__["resignation_reason"] = res.resignation_reason
+                dict__["status"] = res.status,
+                dict__['exit_date'] = res.date_of_exit
+                dict__["approver"] = res.approver.first_name
+                array.append(dict__)
+            return({"data":array,"status":200})
+        else:
+            return({"data":[],"status":204})
+        
+    def approve_resignations(self,request):
+        id = request.data["user_email"]
+        record_id = request.data['record_id']
+        status = request.data['status']
+        exit_date = request.data['exit_date']        
+        if status == 'Approved' and exit_date:
+            date = datetime.strptime(exit_date, '%Y-%m-%d').date()
+            Resignation.objects.filter(id=record_id).update(status=status,date_of_exit=date)
+        elif status == 'Approved' and not exit_date:
+            return ({"message":"Please select date","status":400})
+        elif status == 'Rejected':
+            Resignation.objects.filter(id=record_id).update(status=status)
+        else:
+            pass
+        user = User.objects.get(email=id)        
+        result = Resignation.objects.filter(approver=user,status="pending")
+        if result:
+            array = []
+            for res in result: 
+                dict__ = {}
+                dict__["id"] = res.id
+                dict__["resignation_date"] = res.resignation_date
+                dict__["resignation_reason"] = res.resignation_reason
+                dict__["status"] = res.status
+                dict__["applied_by"] = res.applied_by.first_name
+                array.append(dict__)
+            return({"data":array,"status":200})
+        else:
+            return({"data":[],"status":204})

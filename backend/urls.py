@@ -63,6 +63,12 @@ router.register(
 router.register(
     "approve/attendance-regularize",views.ApproveAttendanceRegularize,basename="ApproveAttendanceRegularize"
 )
+router.register(
+    "apply/resignation",views.ApplyResignation,basename="ApplyResignation"
+)
+router.register(
+    "all-resignation",views.AllResignations,basename="AllResignations"
+)
 
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView

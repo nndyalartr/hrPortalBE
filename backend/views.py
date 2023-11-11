@@ -10,7 +10,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt import authentication
 from users_api.models import User
-from .bussiness_logic import AttendanceRelatedLogics,UserRelatedLogics
+from .bussiness_logic import AttendanceRelatedLogics,UserRelatedLogics,ResignationRelatedLogics
 import calendar
 from django.db.models import Q
 import numpy
@@ -178,11 +178,12 @@ class AttendanceDetails(ViewSet):
     def list(self,request):
         currentDay = datetime.now().day
         today = timezone.localtime()
+        start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         email = request.GET.get("email_id")
         user = User.objects.filter(email=email).first()
         if not user:
             return Response({"message":"User not found"},status=401)
-        data = AttendanceLogs.objects.filter(user=user,created_at__lte=today).order_by("created_at").values().all()
+        data = AttendanceLogs.objects.filter(user=user,created_at__lte=today,created_at__gte=start_of_month).order_by("created_at").values().all()
         
         if data:
             return Response(data,status=200)
@@ -349,4 +350,22 @@ class ApproveAttendanceRegularize(ViewSet,AttendanceRelatedLogics):
         return Response(result,status=result['status'])
     def list(self,request):
         result = self.attendance_regularize_approve(request)
+        return Response(result['data'],status=result['status'])
+    
+class ApplyResignation(ViewSet,ResignationRelatedLogics):
+    def list(self,request):
+        result = self.get_resignation_status(request)
+        return Response(result,status=result['status'])
+    def create(self,request):
+        result = self.apply_resignation(request)
+        
+        return Response("",status=200)
+    
+class AllResignations(ViewSet,ResignationRelatedLogics):
+    def list(self,request):
+        result = self.get_all_resignations(request)
+        return Response(result,status=result['status'])
+    
+    def create(self,request):
+        result = self.approve_resignations(request)
         return Response(result['data'],status=result['status'])

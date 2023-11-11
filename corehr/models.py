@@ -83,3 +83,16 @@ class AttendanceRegularization(models.Model):
     status = models.TextField()
     applied_by = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="reg_applied_by")
     approver = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="reg_approver")
+
+class Resignation(models.Model):
+    id = models.UUIDField(
+        default=uuid.uuid4,max_length=500,primary_key=True,editable=False
+    )
+    resignation_date = models.DateField()
+    personal_phone_no = models.TextField()
+    personal_mail_id = models.TextField()
+    resignation_reason = models.TextField()
+    status = models.TextField(null=True)
+    date_of_exit = models.DateField(null=True)
+    applied_by = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="resg_applied_by")
+    approver = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="resg_approver")
