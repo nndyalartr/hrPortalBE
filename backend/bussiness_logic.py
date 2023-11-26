@@ -238,7 +238,6 @@ class AttendanceReports(object):
             for log in record['attendance_logs']:
                 date = log["created_at"]
                 is_present = log["is_present"]
-                work_hours = log["work_hours"]
                 leave_details = log["leave_details"]
                 remarks = log["remarks"] 
                 week_days = log["week_day"]
@@ -268,12 +267,7 @@ class AttendanceReports(object):
                 elif not log :
                     final_remarks = "N/A"
                 user_logs[date] = final_remarks
-            
             rows.append(user_logs)
-
-        # Create a DataFrame
-        
-
         return(rows)
     
 class UsersBulkUploadLogics(object):
