@@ -69,6 +69,15 @@ router.register(
 router.register(
     "all-resignation",views.AllResignations,basename="AllResignations"
 )
+router.register(
+    "all-attendance-records",views.AllAttendanceRecords,basename="AllAttendanceRecords"
+)
+router.register(
+    "user-details",views.AllUserDetails,basename="AllUserDetails"
+)
+router.register(
+    "users-bulk-upload",views.UsersBulkUpload,basename="UsersBulkUpload"
+)
 
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView

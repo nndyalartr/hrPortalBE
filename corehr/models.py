@@ -31,6 +31,9 @@ class UserBasicDetails(models.Model):
     is_pf_eligible=models.BooleanField(null=True)
     is_esi_eligible=models.BooleanField(null=True)
     is_night_shift=models.BooleanField(default=False,null=False)
+    blood_group=models.TextField(null=True)
+    project_name=models.TextField(null=True)
+    role=models.TextField(null=True)
     user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True)
 
 

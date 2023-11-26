@@ -10,11 +10,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt import authentication
 from users_api.models import User
-from .bussiness_logic import AttendanceRelatedLogics,UserRelatedLogics,ResignationRelatedLogics
+from .bussiness_logic import AttendanceRelatedLogics,UserRelatedLogics,ResignationRelatedLogics,AttendanceReports,UsersBulkUploadLogics,UserDataLogics
 import calendar
 from django.db.models import Q
 import numpy
 import json
+from django.http import HttpResponse
+import pandas as pd
 # Create your views here.
 class CreateAuthUser(ViewSet):
     def create(self,request):
@@ -369,3 +371,26 @@ class AllResignations(ViewSet,ResignationRelatedLogics):
     def create(self,request):
         result = self.approve_resignations(request)
         return Response(result['data'],status=result['status'])
+    
+class AllAttendanceRecords(ViewSet,AttendanceReports):
+    def list(self,request):
+        from_date = request.GET.get('from_date')
+        to_date = request.GET.get('to_date')
+        result = self.get_all_attendance_reports(from_date,to_date)
+        df = pd.DataFrame(result).fillna('')  # Replace NaN values with empty string
+
+        # Convert DataFrame to Excel
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        file_name = 'attendance_data.xlsx'
+        response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+
+        df.to_excel(response, index=False, sheet_name='Attendance')
+        return response
+class AllUserDetails(ViewSet,UserDataLogics):
+    def list(self,request):
+        result = self.get_all_user_details(request)
+        return Response(result,status=200)
+class UsersBulkUpload(ViewSet,UsersBulkUploadLogics):
+    def create(self,request):
+        result = self.create_users_bulk_upload(request)
+        return Response(result,status=200)
