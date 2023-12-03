@@ -4,6 +4,7 @@ from django.utils import timezone
 from corehr.models import UserBasicDetails,AttendanceLogs,Events,Leaveapprovals,AttendanceRegularization,Resignation
 from users_api.models import User
 import pandas as pd
+from django.db.models import Q
 
 class UserRelatedLogics():
     def create_user(self,request):
@@ -46,6 +47,20 @@ class UserRelatedLogics():
             return({"message":"Successfully created user","status":200})
         except Exception as e:
             return({"message":"e","status":400})
+    def update_user(self,req_dict):        
+        user = User.objects.get(id = req_dict['id'])
+        try:
+            del req_dict['id']
+            user_dict = {
+                "first_name" : req_dict.get("first_name"),
+                "last_name":req_dict.get("last_name"),
+                "email":req_dict.get("email_id")
+            }
+            updated_user = User.objects.filter(id = user.id).update(**user_dict)
+            res = UserBasicDetails.objects.filter(user=user).update(**req_dict)
+            return({"message":"Successfully created user","status":200})
+        except Exception as e:
+            return({"message":str(e),"status":400})
             
 class AttendanceRelatedLogics():
     def attendance_regularize_det(self,request):
@@ -357,4 +372,19 @@ class UserDataLogics(object):
             data_dict["emp_name"] = item.emp_name
             details.append(data_dict)
         return details
+    
+    def search_users(self,request):
+        emp_id = request.GET.get("emp_id","")
+        project = request.GET.get("project","")
+        if emp_id  and not project:
+            result = UserBasicDetails.objects.filter(Q(emp_name__icontains=emp_id)).values()
+            if not result.exists():
+                result = UserBasicDetails.objects.filter(emp_no = emp_id).values()
+        elif project  and not  emp_id:
+            result = UserBasicDetails.objects.filter(Q(project_name__icontains=project)).values()
+        elif project and emp_id :
+            result = UserBasicDetails.objects.filter(Q(project_name__icontains=project)&Q(emp_name__icontains=emp_id)).values()
+        else:
+            result = UserBasicDetails.objects.all().values()
+        return result
     

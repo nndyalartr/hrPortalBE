@@ -31,8 +31,14 @@ class CreateAuthUser(ViewSet):
         )
         return Response("created",status=200)
 class CreateUser(ViewSet,UserRelatedLogics):
+        
     def create(self,request):
         result = self.create_user(request)        
+        return Response(result,status=result["status"])
+class EditUser(ViewSet,UserRelatedLogics):
+    def create(self,request):
+        req_dict=request.data
+        result = self.update_user(req_dict)        
         return Response(result,status=result["status"])
 class GetMydetails(ViewSet):
     authentication_classes = [JWTAuthentication]
@@ -393,4 +399,9 @@ class AllUserDetails(ViewSet,UserDataLogics):
 class UsersBulkUpload(ViewSet,UsersBulkUploadLogics):
     def create(self,request):
         result = self.create_users_bulk_upload(request)
+        return Response(result,status=200)
+    
+class UserSearch(ViewSet,UserDataLogics):
+    def list (self,request):
+        result = self.search_users(request)
         return Response(result,status=200)

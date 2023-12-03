@@ -25,6 +25,9 @@ router.register(
     "user-register" , views.CreateUser ,basename="CreateUser"
 )
 router.register(
+    "user-edit" , views.EditUser ,basename="EditUser"
+)
+router.register(
     "my-details",views.GetMydetails, basename="GetMydetails"
 )
 router.register(
@@ -77,6 +80,9 @@ router.register(
 )
 router.register(
     "users-bulk-upload",views.UsersBulkUpload,basename="UsersBulkUpload"
+)
+router.register(
+    "user-search",views.UserSearch,basename="UserSearch"
 )
 
 

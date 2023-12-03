@@ -36,6 +36,11 @@ class UserBasicDetails(models.Model):
     role=models.TextField(null=True)
     user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True)
 
+    def __str__(self):
+        return f"Employee: {self.emp_name}"
+    
+
+
 
 
 class AttendanceLogs(models.Model):
