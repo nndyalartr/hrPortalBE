@@ -376,7 +376,7 @@ class UserDataLogics(object):
     def search_users(self,request):
         emp_id = request.GET.get("emp_id","")
         project = request.GET.get("project","")
-        if emp_id  and not project:
+        if emp_id  and not project:            
             result = UserBasicDetails.objects.filter(Q(emp_name__icontains=emp_id)).values()
             if not result.exists():
                 result = UserBasicDetails.objects.filter(emp_no = emp_id).values()
@@ -386,5 +386,15 @@ class UserDataLogics(object):
             result = UserBasicDetails.objects.filter(Q(project_name__icontains=project)&Q(emp_name__icontains=emp_id)).values()
         else:
             result = UserBasicDetails.objects.all().values()
+        final_list = []
+        if result.exists():
+            for item in result:
+                data_dict = item
+                user_det = User.objects.get(id = item['user_id'])
+                if user_det.leader_name:
+                    data_dict['reporting_to'] = user_det.leader_name.first_name+ " " + user_det.leader_name.last_name
+                else:
+                    data_dict['reporting_to'] = "N/A"
+            final_list.append(data_dict)
         return result
     

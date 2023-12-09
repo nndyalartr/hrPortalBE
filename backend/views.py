@@ -57,6 +57,7 @@ class AttendancePunching(ViewSet):
         req_body = json.loads(request.body)   
         email = req_body["user_email"]        
         user = User.objects.filter(email=email).first()
+        user_leaves = user.leaves_remaining
         if not user:
             return Response({"message":"user not found"},status=401)  
         create_all_logs = AttendanceLogs.objects.filter(login_time__month=today.month,user=user).exclude(leave_details="")
@@ -67,6 +68,8 @@ class AttendancePunching(ViewSet):
             for days in leave_days:
                 existing_days.append(days.created_at)
         if not create_all_logs:
+            user_leaves = user_leaves+1.5
+            add_leaves = User.objects.filter(id=user.id).update(leaves_remaining = user_leaves )
             for x in range(calendar.monthrange(today.year, today.month)[1]):
                 da_te=datetime(today.year, today.month, x+1)
                 week =da_te.strftime('%A')
@@ -231,8 +234,9 @@ class LeaveApply(ViewSet):
         leave_details = request.data.get("leaves")
         leave_type = request.data.get("leave_type")
         leave_reason = request.data.get("leave_reason")
+        leave_count = request.data.get("leave_count")
         user_query = User.objects.filter(email=req_user).prefetch_related("leader_name").first()
-        result = Leaveapprovals.objects.create(leave_details=leave_details,leave_type=leave_type,leave_reason=leave_reason,applied_by=user_query,approver=user_query.leader_name,status="pending")
+        result = Leaveapprovals.objects.create(leave_details=leave_details,leave_type=leave_type,leave_reason=leave_reason,applied_by=user_query,approver=user_query.leader_name,status="pending",leave_count=leave_count)
         return Response({"message":"Suucessfully applied leave"},status=200)
     
     def list(self,request):
@@ -272,6 +276,9 @@ class LeaveApproval(ViewSet):
         action = request.data.get("action")
         res = Leaveapprovals.objects.filter(id=id).update(status=action)
         leave_obj = Leaveapprovals.objects.get(id=id)
+        existing_leave_count = leave_obj.applied_by.leaves_remaining
+        to_be_minus = existing_leave_count-leave_obj.leave_count
+        update_leaves_in_user = User.objects.filter(id=leave_obj.applied_by.id).update(leaves_remaining=to_be_minus)
         for leave in leave_obj.leave_details:
             pp = AttendanceLogs.objects.filter(user=leave_obj.applied_by,created_at = datetime.strptime(leave['date'], '%Y-%m-%d').date())
             if pp:
@@ -288,7 +295,7 @@ class LeaveApproval(ViewSet):
                     AttendanceLogs.objects.create(user=leave_obj.applied_by,created_at=da_te,week_day=week,leave_details=leave['session'],remarks = "leave")                    
                 else:
                     AttendanceLogs.objects.create(user=leave_obj.applied_by,created_at=da_te,week_day=week,leave_details=leave['session'],remarks = "H/A")
-        if res  == 1:
+        if res == 1:
             return Response({"message":"approved leave request"},status=200)
         else:
             return Response({"message":"something went wrong"},status=500)

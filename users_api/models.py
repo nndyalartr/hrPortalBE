@@ -10,7 +10,7 @@ class User(AbstractUser):
     email=models.EmailField(max_length=100,unique=True)
     leader_name=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="leader")
     role = models.TextField(null=False,default="Executive")
-    leaves_remaining = models.IntegerField(null=True,default=0)
+    leaves_remaining = models.FloatField(default=0.0)
     USERNAME_FIELD="email"
     REQUIRED_FIELDS=["first_name","last_name"]
 

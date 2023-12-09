@@ -76,6 +76,7 @@ class Leaveapprovals(models.Model):
     applied_by = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="applied_by")
     approver = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="approver")
     leave_details = models.JSONField()
+    leave_count = models.FloatField(default=0)
     status = models.TextField()
 
 class AttendanceRegularization(models.Model):
