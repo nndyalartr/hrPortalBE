@@ -49,6 +49,14 @@ class UserRelatedLogics():
             return({"message":"e","status":400})
     def update_user(self,req_dict):        
         user = User.objects.get(id = req_dict['id'])
+        reporting_to = req_dict['reporting_to']
+        try:
+            leader = User.objects.get(id=reporting_to)
+            user.leader_name = leader
+            user.save()
+        except:
+            pass
+        del req_dict['reporting_to']
         try:
             del req_dict['id']
             user_dict = {
@@ -146,6 +154,11 @@ class AttendanceRelatedLogics():
                 return({"message":"Successfully Updated","status":200})
             else:
                 return({"message":"something Wnt Wrong","status":500})
+        else:
+            result =  AttendanceRegularization.objects.get(id = id)
+            result.status = "rejected"
+            result.save()
+            return({"message":"Successfully Updated","status":200})
             
 class ResignationRelatedLogics(object):
     def apply_resignation(self,request):
@@ -393,8 +406,19 @@ class UserDataLogics(object):
                 user_det = User.objects.get(id = item['user_id'])
                 if user_det.leader_name:
                     data_dict['reporting_to'] = user_det.leader_name.first_name+ " " + user_det.leader_name.last_name
+                    data_dict['reporting_id'] = user_det.leader_name.id
                 else:
                     data_dict['reporting_to'] = "N/A"
+                    data_dict['reporting_id'] = ""
             final_list.append(data_dict)
         return result
+    def get_leader_list(self,request):
+        leader_roles = ['Manager','TL','GC']
+        result = User.objects.filter(role__in=leader_roles).values("id","first_name","last_name")
+        final_list = []
+        if result.exists():
+            for item in result:
+                data_dict = {"label":item['first_name'] +" " +item['last_name'],"key":item['id'],"value":item['id']}
+                final_list.append(data_dict)
+        return(final_list)
     

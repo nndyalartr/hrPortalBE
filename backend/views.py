@@ -143,7 +143,7 @@ class UserSessionLogin(ViewSet):
             }
             return Response(res,status=200)
         else:
-            return Response({"message":"Login Failed"},status=401)
+            return Response({"message":"In-Valid Login Credentials"},status=400)
         
 
 class LeaveDetails(ViewSet):
@@ -411,4 +411,9 @@ class UsersBulkUpload(ViewSet,UsersBulkUploadLogics):
 class UserSearch(ViewSet,UserDataLogics):
     def list (self,request):
         result = self.search_users(request)
+        return Response(result,status=200)
+    
+class LeaderList(ViewSet,UserDataLogics):
+    def list (self,request):
+        result = self.get_leader_list(request)
         return Response(result,status=200)

@@ -84,6 +84,9 @@ router.register(
 router.register(
     "user-search",views.UserSearch,basename="UserSearch"
 )
+router.register(
+    "leader_list",views.LeaderList,basename="LeaderList"
+)
 
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
