@@ -102,7 +102,10 @@ class AttendanceRelatedLogics():
     def attendance_regularize_list(self,request):
         id = request.GET.get("id")
         user = User.objects.get(email = id)        
-        result = AttendanceRegularization.objects.filter(applied_by = user)
+        today = timezone.localtime()
+        first_day_this_month = today.replace(day=1)
+        previous_month = first_day_this_month - timedelta(days=1)
+        result = AttendanceRegularization.objects.filter(applied_by = user,date__month__gte =previous_month.month ).order_by("-date")
         if result:
             array = []
             for res in result: 
