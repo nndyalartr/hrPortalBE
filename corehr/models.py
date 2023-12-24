@@ -105,3 +105,11 @@ class Resignation(models.Model):
     date_of_exit = models.DateField(null=True)
     applied_by = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="resg_applied_by")
     approver = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="resg_approver")
+
+class UserTimeLogs(models.Model):
+    id = models.UUIDField(
+        default=uuid.uuid4,max_length=500,primary_key=True,editable=False
+    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="user_logs")
+    log_date = models.DateField()
+    logs_data = models.JSONField()

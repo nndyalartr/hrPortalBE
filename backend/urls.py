@@ -87,6 +87,15 @@ router.register(
 router.register(
     "leader_list",views.LeaderList,basename="LeaderList"
 )
+router.register(
+    "time_logs",views.StoreUserLogData,basename="StoreUserLogData"
+)
+router.register(
+    "fetch-time_logs",views.FetchUserLogData,basename="FetchUserLogData"
+)
+router.register(
+    "user-options",views.UserOptions,basename="UserOptions"
+)
 
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView

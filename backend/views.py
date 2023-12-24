@@ -10,7 +10,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt import authentication
 from users_api.models import User
-from .bussiness_logic import AttendanceRelatedLogics,UserRelatedLogics,ResignationRelatedLogics,AttendanceReports,UsersBulkUploadLogics,UserDataLogics
+from .bussiness_logic import AttendanceRelatedLogics,UserRelatedLogics,ResignationRelatedLogics,AttendanceReports,UsersBulkUploadLogics,UserDataLogics,UserDetailedLogs
 import calendar
 from django.db.models import Q
 import numpy
@@ -390,9 +390,7 @@ class AllAttendanceRecords(ViewSet,AttendanceReports):
         from_date = request.GET.get('from_date')
         to_date = request.GET.get('to_date')
         result = self.get_all_attendance_reports(from_date,to_date)
-        df = pd.DataFrame(result).fillna('')  # Replace NaN values with empty string
-
-        # Convert DataFrame to Excel
+        df = pd.DataFrame(result).fillna('')
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         file_name = 'attendance_data.xlsx'
         response['Content-Disposition'] = f'attachment; filename="{file_name}"'
@@ -417,3 +415,18 @@ class LeaderList(ViewSet,UserDataLogics):
     def list (self,request):
         result = self.get_leader_list(request)
         return Response(result,status=200)
+    
+class StoreUserLogData(ViewSet,UserDetailedLogs):
+    def create(self,request):
+        res = self.store_detailed_user_logs(request)
+        return Response("",status=200)
+
+class FetchUserLogData(ViewSet,UserDetailedLogs):
+    def list(self,request):
+        res = self.get_detailed_user_logs(request)
+        return Response(res,status=200)
+    
+class UserOptions(ViewSet,UserDetailedLogs):
+    def list(self,request):
+        res = self.get_user_list_options()
+        return Response(res,status=200)

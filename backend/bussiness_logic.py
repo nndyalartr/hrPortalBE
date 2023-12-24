@@ -1,7 +1,7 @@
 from datetime import timedelta,datetime
 import json
 from django.utils import timezone
-from corehr.models import UserBasicDetails,AttendanceLogs,Events,Leaveapprovals,AttendanceRegularization,Resignation
+from corehr.models import UserBasicDetails,AttendanceLogs,Events,Leaveapprovals,AttendanceRegularization,Resignation,UserTimeLogs
 from users_api.models import User
 import pandas as pd
 from django.db.models import Q
@@ -425,3 +425,30 @@ class UserDataLogics(object):
                 final_list.append(data_dict)
         return(final_list)
     
+class UserDetailedLogs(object):
+    def store_detailed_user_logs(self,request):
+        user = User.objects.get(email = request.data['user_email'])
+        today = timezone.localtime()
+        check_duplicate = UserTimeLogs.objects.filter(log_date=today.date(),user=user)
+        if check_duplicate:
+            update = check_duplicate.update(logs_data=request.data['logs_data'])
+        else:
+            create_logs = UserTimeLogs.objects.create(log_date=today.date(),user=user,logs_data=request.data['logs_data'])
+        return({})
+    
+    def get_detailed_user_logs(self,request):
+        
+        user = User.objects.get(email = request.GET.get('user_email'))
+        date = request.GET.get("date")
+        res = UserTimeLogs.objects.filter(log_date=date,user=user).values().first()
+        if res:
+            res['user_name'] = user.first_name +" " +user.last_name
+        return(res)
+    
+    def get_user_list_options(self):
+        user_list = User.objects.all().values("first_name","last_name","email")
+        result = []
+        for user in user_list:
+            data_dict = {"label":user['first_name'] + " " + user['last_name'],"key":user['email'],"value":user['email']}
+            result.append(data_dict)
+        return(result)
