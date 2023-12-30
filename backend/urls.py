@@ -25,6 +25,9 @@ router.register(
     "user-register" , views.CreateUser ,basename="CreateUser"
 )
 router.register(
+    "first-user-register" , views.CreateFirstUser ,basename="CreateFirstUser"
+)
+router.register(
     "user-edit" , views.EditUser ,basename="EditUser"
 )
 router.register(

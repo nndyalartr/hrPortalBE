@@ -15,7 +15,8 @@ class UserRelatedLogics():
                 password = "Welcome@123",
                 first_name=req_dict.get("first_name"),
                 last_name=req_dict.get("last_name"),
-                username = req_dict.get("email")
+                username = req_dict.get("email"),
+                role = req_dict.get("designation")
             )
             permanent_address=req_dict.get("permanent_address")
             res = UserBasicDetails.objects.create(emp_no=req_dict.get("emp_id"),
@@ -44,9 +45,9 @@ class UserRelatedLogics():
                             is_esi_eligible=req_dict.get("is_esi_eligible"),
                             user=user
                                 )
-            return({"message":"Successfully created user","status":200})
+            return({"message":"Successfully created user with Pasword = Welcome@123","status":200})
         except Exception as e:
-            return({"message":"e","status":400})
+            return({"message":str(e),"status":400})
     def update_user(self,req_dict):        
         user = User.objects.get(id = req_dict['id'])
         reporting_to = req_dict['reporting_to']
@@ -340,7 +341,8 @@ class UsersBulkUploadLogics(object):
                     password = "Welcome@123",
                     first_name=req_dict.get("first_name"),
                     last_name=req_dict.get("last_name"),
-                    username = req_dict.get("email")
+                    username = req_dict.get("email"),
+                    role = req_dict.get("designation")
                 )
                 permanent_address=req_dict.get("permanent_address")
                 res = UserBasicDetails.objects.create(emp_no=req_dict.get("emp_id"),

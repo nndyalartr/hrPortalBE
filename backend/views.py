@@ -19,6 +19,8 @@ from django.http import HttpResponse
 import pandas as pd
 # Create your views here.
 class CreateAuthUser(ViewSet):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def create(self,request):
         req_dict=json.loads(request.body)
         res = User.objects.create(
@@ -31,11 +33,22 @@ class CreateAuthUser(ViewSet):
         )
         return Response("created",status=200)
 class CreateUser(ViewSet,UserRelatedLogics):
-        
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]        
     def create(self,request):
         result = self.create_user(request)        
         return Response(result,status=result["status"])
+class CreateFirstUser(ViewSet,UserRelatedLogics):        
+    def create(self,request):
+        pass_code = request.headers.get("password")
+        if pass_code == "Ravi%1106":
+            result = self.create_user(request) 
+        else :
+            result = {"message":"Un Authorized User","status":401}       
+        return Response(result,status=result["status"])
 class EditUser(ViewSet,UserRelatedLogics):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def create(self,request):
         req_dict=request.data
         result = self.update_user(req_dict)        
@@ -125,6 +138,9 @@ class AttendancePunching(ViewSet):
         dateStr = str(time_diff).split(":")
         if int(dateStr[0]) >= 8:
             dupRecoed.update(is_present=True,work_hours=time_diff,remarks="present")
+        half_day_leave = ["s-1","s-2"]
+        if int(dateStr[0]) >= 4 and dupRecoed.first().leave_details in half_day_leave:
+            dupRecoed.update(is_present=True,work_hours=time_diff,remarks="H/A- leave & H/A- present")
         return Response({"message":"successfully logged out","loggoff_time":logout_time},status=200)
 
 class UserSessionLogin(ViewSet):
@@ -147,8 +163,6 @@ class UserSessionLogin(ViewSet):
         
 
 class LeaveDetails(ViewSet):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     def list(self,request):    
@@ -368,6 +382,8 @@ class ApproveAttendanceRegularize(ViewSet,AttendanceRelatedLogics):
         return Response(result['data'],status=result['status'])
     
 class ApplyResignation(ViewSet,ResignationRelatedLogics):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def list(self,request):
         result = self.get_resignation_status(request)
         return Response(result,status=result['status'])
@@ -377,6 +393,8 @@ class ApplyResignation(ViewSet,ResignationRelatedLogics):
         return Response("",status=200)
     
 class AllResignations(ViewSet,ResignationRelatedLogics):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def list(self,request):
         result = self.get_all_resignations(request)
         return Response(result,status=result['status'])
@@ -386,6 +404,8 @@ class AllResignations(ViewSet,ResignationRelatedLogics):
         return Response(result['data'],status=result['status'])
     
 class AllAttendanceRecords(ViewSet,AttendanceReports):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def list(self,request):
         from_date = request.GET.get('from_date')
         to_date = request.GET.get('to_date')
@@ -398,35 +418,49 @@ class AllAttendanceRecords(ViewSet,AttendanceReports):
         df.to_excel(response, index=False, sheet_name='Attendance')
         return response
 class AllUserDetails(ViewSet,UserDataLogics):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def list(self,request):
         result = self.get_all_user_details(request)
         return Response(result,status=200)
 class UsersBulkUpload(ViewSet,UsersBulkUploadLogics):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def create(self,request):
         result = self.create_users_bulk_upload(request)
         return Response(result,status=200)
     
 class UserSearch(ViewSet,UserDataLogics):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def list (self,request):
         result = self.search_users(request)
         return Response(result,status=200)
     
 class LeaderList(ViewSet,UserDataLogics):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def list (self,request):
         result = self.get_leader_list(request)
         return Response(result,status=200)
     
 class StoreUserLogData(ViewSet,UserDetailedLogs):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def create(self,request):
         res = self.store_detailed_user_logs(request)
         return Response("",status=200)
 
 class FetchUserLogData(ViewSet,UserDetailedLogs):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def list(self,request):
         res = self.get_detailed_user_logs(request)
         return Response(res,status=200)
     
 class UserOptions(ViewSet,UserDetailedLogs):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     def list(self,request):
         res = self.get_user_list_options()
         return Response(res,status=200)
