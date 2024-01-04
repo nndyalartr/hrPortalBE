@@ -79,7 +79,7 @@ class AttendanceRelatedLogics():
         except:
             return({"absent_logs":[],"message":"User not found","status":400})
         today = timezone.localtime()
-        response_logs = AttendanceLogs.objects.filter(user=user,is_present=False,created_at__lte=today,created_at__month__gte = today.month,remarks="").values()
+        response_logs = AttendanceLogs.objects.filter(user=user,is_present=False,created_at__lte=today,created_at__month__gte = today.month,remarks="").values().order_by("-created_at")
         if response_logs:
             return({"absent_logs":response_logs,"status":200})
         else:

@@ -183,7 +183,8 @@ class LeaveDetails(ViewSet):
         present_count = 0
         abscent_count = 0
         leave_count = 0
-        att_logs = AttendanceLogs.objects.filter(user=user ,created_at__month = today.month,created_at__lte=today)
+        present_day = timezone.localtime()
+        att_logs = AttendanceLogs.objects.filter(user=user ,created_at__month = today.month,created_at__lte=present_day)
         week_list = ["Sunday","Saturday"]
         for item in att_logs:
             # if item.is_present or item.remarks == "Holiday" or item.week_day in week_list:
@@ -193,7 +194,7 @@ class LeaveDetails(ViewSet):
                 leave_count += 1
             elif not item.is_present and (item.leave_details == "s-1" or item.leave_details == "s-2"):
                 leave_count += .5
-            elif  item.leave_details is None and not item.is_present and item.week_day not in week_list:
+            elif  item.leave_details is None and item.is_present != True and item.week_day not in week_list and item.remarks !="Holiday":
                 abscent_count += 1
         return Response({"present_days":present_count,"absent_days":abscent_count,"leaves_remaining":user.leaves_remaining,"leaves_utilized":leave_count},status=200)
 
@@ -234,7 +235,8 @@ class EventDetails(ViewSet):
             return Response ({"message":"something wrong"},status=500)
         
     def list(self,request):
-        res = Events.objects.values()
+        today = timezone.localtime()
+        res = Events.objects.filter(date__year=today.year).values()
         if res:
             return Response(res,status=200)
         else:
