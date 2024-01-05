@@ -59,6 +59,9 @@ REST_FRAMEWORK = {
 ALLOWED_HOSTS=['*']
 CORS_ALLOWED_ORIGINS=True
 CORS_ALLOWED_CREDENTIALS =True
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',"https://app.rcs.rcservices.co"
+]
 CORS_ALLOW_HEADERS= list(default_headers)+[
     "Cookie",
     "X-CSRFToken"
