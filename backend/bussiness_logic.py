@@ -53,7 +53,7 @@ class UserRelatedLogics():
         reporting_to = req_dict['reporting_to']
         try:
             leader = User.objects.get(id=reporting_to)
-            user.leader_name = leader
+            user.leader_name = leader            
             user.save()
         except:
             pass
@@ -63,8 +63,10 @@ class UserRelatedLogics():
             user_dict = {
                 "first_name" : req_dict.get("first_name"),
                 "last_name":req_dict.get("last_name"),
-                "email":req_dict.get("email_id")
+                "email":req_dict.get("email_id"),
+                "is_active":req_dict.get('is_active')
             }
+            del req_dict['is_active']
             updated_user = User.objects.filter(id = user.id).update(**user_dict)
             res = UserBasicDetails.objects.filter(user=user).update(**req_dict)
             return({"message":"Successfully created user","status":200})
@@ -330,19 +332,24 @@ class UsersBulkUploadLogics(object):
                 list(csv_users_data)[20]:"ctc",
                 list(csv_users_data)[21]:"pan",
                 list(csv_users_data)[22]:"is_esi_eligible",  
-                list(csv_users_data)[23]:"name_as_aadhar"              
+                list(csv_users_data)[23]:"name_as_aadhar"   ,
+                list(csv_users_data)[24]:"location"           
             },
             inplace=True
         )
         for req_dict in csv_users_data.iloc:
+            aadhar = req_dict.get("aadhar_number","")
+            before_decimal = str(aadhar).split('.')[0]
+            if not before_decimal:
+                before_decimal = "N/A"
             try:
                 user = User.objects.create(
-                    email = req_dict.get("email"),
+                    email = req_dict.get("email").lower(),
                     password = "Welcome@123",
                     first_name=req_dict.get("first_name"),
                     last_name=req_dict.get("last_name"),
-                    username = req_dict.get("email"),
-                    role = req_dict.get("designation")
+                    username = req_dict.get("email").lower(),
+                    role = req_dict.get("role")
                 )
                 permanent_address=req_dict.get("permanent_address")
                 res = UserBasicDetails.objects.create(emp_no=req_dict.get("emp_id"),
@@ -354,7 +361,7 @@ class UsersBulkUploadLogics(object):
                                 name_as_aadhar=req_dict.get("name_as_aadhar"),
                                 emergency_contact_name=req_dict.get("emergency_contact_name"),
                                 emergency_contact=req_dict.get("emergency_contact"),
-                                aadhar_number=req_dict.get("aadhar_number"),
+                                aadhar_number=before_decimal,
                                 mobile_number=req_dict.get("mobile_number"),
                                 designation=req_dict.get("designation"),
                                 location=req_dict.get("location",""),
@@ -406,17 +413,21 @@ class UserDataLogics(object):
             result = UserBasicDetails.objects.all().values()
         final_list = []
         if result.exists():
-            for item in result:
-                data_dict = item
-                user_det = User.objects.get(id = item['user_id'])
-                if user_det.leader_name:
-                    data_dict['reporting_to'] = user_det.leader_name.first_name+ " " + user_det.leader_name.last_name
-                    data_dict['reporting_id'] = user_det.leader_name.id
+            for item in result:                
+                user_det = User.objects.get(id = item['user_id'])                
+                if user_det.is_active:
+                    data_dict = item
+                    data_dict["is_active"] = user_det.is_active
+                    if user_det.leader_name:
+                        data_dict['reporting_to'] = user_det.leader_name.first_name+ " " + user_det.leader_name.last_name
+                        data_dict['reporting_id'] = user_det.leader_name.id
+                    else:
+                        data_dict['reporting_to'] = "N/A"
+                        data_dict['reporting_id'] = ""
+                    final_list.append(data_dict)
                 else:
-                    data_dict['reporting_to'] = "N/A"
-                    data_dict['reporting_id'] = ""
-            final_list.append(data_dict)
-        return result
+                    pass
+        return final_list
     def get_leader_list(self,request):
         leader_roles = ['Manager','TL','GC']
         result = User.objects.filter(role__in=leader_roles).values("id","first_name","last_name")

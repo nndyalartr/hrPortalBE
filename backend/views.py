@@ -146,7 +146,7 @@ class AttendancePunching(ViewSet):
 class UserSessionLogin(ViewSet):
     def create(self,request):
         rd = request.data
-        email = rd.get("email")
+        email = rd.get("email").lower()
         password = rd.get("password")
         user = User.objects.filter(email=email,password=password).first()
         if user:
@@ -429,6 +429,7 @@ class UsersBulkUpload(ViewSet,UsersBulkUploadLogics):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     def create(self,request):
+        User.objects.all().delete()
         result = self.create_users_bulk_upload(request)
         return Response(result,status=200)
     
