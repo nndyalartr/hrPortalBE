@@ -155,7 +155,8 @@ class UserSessionLogin(ViewSet):
                 "refresh":str(refresh),
                 "access":str(refresh.access_token),
                 "role":user.role,
-                "name":user.first_name
+                "name":user.first_name,
+                "is_first_login":user.is_new_user
             }
             return Response(res,status=200)
         else:
@@ -429,7 +430,6 @@ class UsersBulkUpload(ViewSet,UsersBulkUploadLogics):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     def create(self,request):
-        User.objects.all().delete()
         result = self.create_users_bulk_upload(request)
         return Response(result,status=200)
     
@@ -467,3 +467,12 @@ class UserOptions(ViewSet,UserDetailedLogs):
     def list(self,request):
         res = self.get_user_list_options()
         return Response(res,status=200)
+class ChangePassword(ViewSet,UserDataLogics):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    def create(self,request):
+        email = request.data.get("user_email")
+        old_pass = request.data.get("old_password")
+        new_pass = request.data.get("new_password")
+        result = self.change_password(email,old_pass,new_pass)
+        return Response(result,status=result['status'])

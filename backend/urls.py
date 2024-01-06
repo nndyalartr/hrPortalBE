@@ -99,6 +99,9 @@ router.register(
 router.register(
     "user-options",views.UserOptions,basename="UserOptions"
 )
+router.register(
+    "change-password",views.ChangePassword,basename="ChangePassword"
+)
 
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView

@@ -387,6 +387,18 @@ class UsersBulkUploadLogics(object):
         return ({"message":f"success fully created {len(csv_users_data)} users","status":200})
     
 class UserDataLogics(object):
+    def change_password(self,email,old_pass,new_pass):
+        try:
+            user = User.objects.get(email=email)
+            if old_pass == user.password:
+                user.password = new_pass
+                user.is_new_user = False
+                user.save()
+                return({"message":"Password Changed Successfully","status":401})
+            else:
+                return({"message":"Worng Password","status":400})
+        except:
+            return({"message":"No User Found","status":400})
     def get_all_user_details(self,request):
         details = []
         result = UserBasicDetails.objects.all()

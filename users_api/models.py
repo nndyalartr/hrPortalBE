@@ -11,6 +11,7 @@ class User(AbstractUser):
     leader_name=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="leader")
     role = models.TextField(null=False,default="Executive")
     leaves_remaining = models.FloatField(default=0.0)
+    is_new_user = models.BooleanField(default=True)
     USERNAME_FIELD="email"
     REQUIRED_FIELDS=["first_name","last_name"]
 
