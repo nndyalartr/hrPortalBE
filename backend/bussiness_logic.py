@@ -441,7 +441,7 @@ class UserDataLogics(object):
                     pass
         return final_list
     def get_leader_list(self,request):
-        leader_roles = ['Manager','TL','GC']
+        leader_roles = ['Manager','TL','GC','HR']
         result = User.objects.filter(role__in=leader_roles).values("id","first_name","last_name")
         final_list = []
         if result.exists():
