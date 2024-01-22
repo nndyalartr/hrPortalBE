@@ -18,7 +18,8 @@ class UserRelatedLogics():
                     first_name=req_dict.get("first_name"),
                     last_name=req_dict.get("last_name"),
                     username = req_dict.get("email"),
-                    role = req_dict.get("designation")
+                    role = req_dict.get("designation"),
+                    "role":req_dict.get("role")
                 )
                 permanent_address=req_dict.get("permanent_address")
                 res = UserBasicDetails.objects.create(emp_no=req_dict.get("emp_id"),
