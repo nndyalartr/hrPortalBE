@@ -102,6 +102,9 @@ router.register(
 router.register(
     "change-password",views.ChangePassword,basename="ChangePassword"
 )
+router.register(
+    "apply/advance",views.ApplyAdvance,basename="ApplyAdvance"
+)
 
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView

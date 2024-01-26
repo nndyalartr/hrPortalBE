@@ -106,6 +106,33 @@ class Resignation(models.Model):
     applied_by = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="resg_applied_by")
     approver = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="resg_approver")
 
+
+class AdvanceAmount(models.Model):
+    id = models.UUIDField(
+        default=uuid.uuid4,max_length=500,primary_key=True,editable=False
+    )
+    advance_date = models.DateField()
+    personal_phone_no = models.TextField()
+    personal_mail_id = models.TextField()
+    advance_reason = models.TextField()
+    status = models.TextField(null=True)
+    cleared_date = models.DateField(null=True)
+    advance = models.FloatField(default=0.0)
+    pending = models.FloatField(default=0.0)
+    collected = models.FloatField(default=0.0)
+    instalments = models.FloatField(default=0.0)
+    permanent_address = models.TextField()
+    applied_by = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="adv_applied_by")
+    approver = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,related_name="adv_approver")
+
+class AdvanceLogs(models.Model):
+    id = models.UUIDField(
+        default=uuid.uuid4,max_length=500,primary_key=True,editable=False
+    )
+    advance_record =  models.ForeignKey(AdvanceAmount,on_delete=models.CASCADE,null=True,related_name="advance_rec")
+    collected_date = models.TextField()
+    collected_amount = models.FloatField(default=0.0)
+
 class UserTimeLogs(models.Model):
     id = models.UUIDField(
         default=uuid.uuid4,max_length=500,primary_key=True,editable=False

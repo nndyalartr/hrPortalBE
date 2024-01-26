@@ -10,7 +10,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt import authentication
 from users_api.models import User
-from .bussiness_logic import AttendanceRelatedLogics,UserRelatedLogics,ResignationRelatedLogics,AttendanceReports,UsersBulkUploadLogics,UserDataLogics,UserDetailedLogs
+from .bussiness_logic import AttendanceRelatedLogics,AdvanceLogics,UserRelatedLogics,ResignationRelatedLogics,AttendanceReports,UsersBulkUploadLogics,UserDataLogics,UserDetailedLogs
 import calendar
 from django.db.models import Q
 import numpy
@@ -430,6 +430,7 @@ class UsersBulkUpload(ViewSet,UsersBulkUploadLogics):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     def create(self,request):
+        User.objects.filter().delete()
         result = self.create_users_bulk_upload(request)
         return Response(result,status=200)
     
@@ -475,4 +476,12 @@ class ChangePassword(ViewSet,UserDataLogics):
         old_pass = request.data.get("old_password")
         new_pass = request.data.get("new_password")
         result = self.change_password(email,old_pass,new_pass)
+        return Response(result,status=result['status'])
+    
+class ApplyAdvance(ViewSet,AdvanceLogics):
+    def list(self,request):
+        result = self.get_my_list(request)
+        return Response(result['data'],status=result['status'])
+    def create(self,request):
+        result = self.create_advance(request)
         return Response(result,status=result['status'])

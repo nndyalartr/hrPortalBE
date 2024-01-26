@@ -1,7 +1,7 @@
 from datetime import timedelta,datetime
 import json
 from django.utils import timezone
-from corehr.models import UserBasicDetails,AttendanceLogs,Events,Leaveapprovals,AttendanceRegularization,Resignation,UserTimeLogs
+from corehr.models import UserBasicDetails,AttendanceLogs,Events,Leaveapprovals,AttendanceRegularization,Resignation,UserTimeLogs,AdvanceAmount
 from users_api.models import User
 import pandas as pd
 from django.db.models import Q
@@ -449,7 +449,43 @@ class UserDataLogics(object):
                 data_dict = {"label":item['first_name'] +" " +item['last_name'],"key":item['id'],"value":item['id']}
                 final_list.append(data_dict)
         return(final_list)
-    
+
+class AdvanceLogics(object):
+    def get_my_list(self,request):
+        user_email= request.data.get("user_email")
+        result = AdvanceAmount.objects.all().values("id","advance","status","approver__first_name","advance_reason","advance_date")
+        if result.exists():
+            return ({"data":result,"status":200})
+        else:
+            return ({"data":[],"status":204})
+    def create_advance(self,request):
+        personal_mail_id = request.data.get("personal_mail_id")
+        personal_phone_no= request.data.get("personal_phone_no")
+        advance_date= request.data.get("advance_date")
+        advance_reason= request.data.get("advance_reason")
+        user_email= request.data.get("user_email")
+        user_address= request.data.get("user_address")
+        advance_amount = request.data.get("advance_amount")
+        try:
+            user = User.objects.get(email=user_email)
+        except:
+            return({"messsage":"no user found","status":400})
+        try:
+            approver = user.leader_name
+        except:
+            return ({"message":"No Manager for you","status":400})
+        adv = AdvanceAmount.objects.create(advance_date = advance_date,
+                                     personal_mail_id = personal_mail_id,
+                                     applied_by = user,
+                                     approver = approver,
+                                     personal_phone_no = personal_phone_no,
+                                     advance_reason = advance_reason,status = "Pending",
+                                     advance = advance_amount,
+                                     permanent_address = user_address)
+        if adv:
+            return({"message":"suucessfully submitted","status":200})
+        else:
+            return({"message":"Something Went Wrong","status":500})   
 class UserDetailedLogs(object):
     def store_detailed_user_logs(self,request):
         user = User.objects.get(email = request.data['user_email'])
