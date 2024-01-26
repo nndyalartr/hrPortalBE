@@ -5,46 +5,48 @@ from corehr.models import UserBasicDetails,AttendanceLogs,Events,Leaveapprovals,
 from users_api.models import User
 import pandas as pd
 from django.db.models import Q
+from django.db import transaction
 
 class UserRelatedLogics():
     def create_user(self,request):
         req_dict=json.loads(request.body)
         try:
-            user = User.objects.create(
-                email = req_dict.get("email"),
-                password = "Welcome@123",
-                first_name=req_dict.get("first_name"),
-                last_name=req_dict.get("last_name"),
-                username = req_dict.get("email"),
-                role = req_dict.get("designation")
-            )
-            permanent_address=req_dict.get("permanent_address")
-            res = UserBasicDetails.objects.create(emp_no=req_dict.get("emp_id"),
-                            emp_name=req_dict.get("emp_name"),
-                            first_name=req_dict.get("first_name"),
-                            last_name=req_dict.get("last_name"),
-                            email_id=req_dict.get("email"),
-                            father_name=req_dict.get("father_name"),
-                            name_as_aadhar=req_dict.get("name_as_aadhar"),
-                            emergency_contact_name=req_dict.get("emergency_contact_name"),
-                            emergency_contact=req_dict.get("emergency_contact"),
-                            aadhar_number=req_dict.get("aadhar_number"),
-                            mobile_number=req_dict.get("mobile_number"),
-                            designation=req_dict.get("designation"),
-                            location=req_dict.get("location"),
-                            department=req_dict.get("department"),
-                            permanent_address=permanent_address,
-                            temporary_address=req_dict.get("temporary_address",permanent_address),
-                            date_of_joining=req_dict.get("date_of_joining"),
-                            date_of_birth=req_dict.get("date_of_birth"),
-                            gender=req_dict.get("gender",""),
-                            ctc=req_dict.get("ctc"),
-                            pan=req_dict.get("pan",""),
-                            maritial_status=req_dict.get("maritial_status",""),
-                            is_pf_eligible=True,
-                            is_esi_eligible=req_dict.get("is_esi_eligible"),
-                            user=user
-                                )
+            with transaction.atomic():
+                user = User.objects.create(
+                    email = req_dict.get("email"),
+                    password = "Welcome@123",
+                    first_name=req_dict.get("first_name"),
+                    last_name=req_dict.get("last_name"),
+                    username = req_dict.get("email"),
+                    role = req_dict.get("designation"),
+                )
+                permanent_address=req_dict.get("permanent_address")
+                res = UserBasicDetails.objects.create(emp_no=req_dict.get("emp_id"),
+                                emp_name=req_dict.get("emp_name",),
+                                first_name=req_dict.get("first_name"),
+                                last_name=req_dict.get("last_name"),
+                                email_id=req_dict.get("email"),
+                                father_name=req_dict.get("father_name"),
+                                name_as_aadhar=req_dict.get("name_as_aadhar"),
+                                emergency_contact_name=req_dict.get("emergency_contact_name"),
+                                emergency_contact=req_dict.get("emergency_contact"),
+                                aadhar_number=req_dict.get("aadhar_number"),
+                                mobile_number=req_dict.get("mobile_number",),
+                                designation=req_dict.get("designation"),
+                                location=req_dict.get("location",""),
+                                department=req_dict.get("department",""),
+                                permanent_address=permanent_address,
+                                temporary_address=req_dict.get("temporary_address",permanent_address),
+                                date_of_joining=req_dict.get("date_of_joining"),
+                                date_of_birth=req_dict.get("date_of_birth"),
+                                gender=req_dict.get("gender",""),
+                                ctc=req_dict.get("ctc"),
+                                pan=req_dict.get("pan",""),
+                                maritial_status=req_dict.get("maritial_status",""),
+                                is_pf_eligible=True,
+                                is_esi_eligible=req_dict.get("is_esi_eligible"),
+                                user=user
+                                    )
             return({"message":"Successfully created user with Pasword = Welcome@123","status":200})
         except Exception as e:
             return({"message":str(e),"status":400})
@@ -64,7 +66,8 @@ class UserRelatedLogics():
                 "first_name" : req_dict.get("first_name"),
                 "last_name":req_dict.get("last_name"),
                 "email":req_dict.get("email_id"),
-                "is_active":req_dict.get('is_active')
+                "is_active":req_dict.get('is_active'),
+                "role":req_dict.get('role')
             }
             del req_dict['is_active']
             updated_user = User.objects.filter(id = user.id).update(**user_dict)
