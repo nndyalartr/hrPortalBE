@@ -185,7 +185,7 @@ class LeaveDetails(ViewSet):
         abscent_count = 0
         leave_count = 0
         present_day = timezone.localtime()
-        att_logs = AttendanceLogs.objects.filter(user=user ,created_at__month = today.month,created_at__lte=present_day)
+        att_logs = AttendanceLogs.objects.filter(user=user ,created_at__month = today.month)
         week_list = ["Sunday","Saturday"]
         for item in att_logs:
             # if item.is_present or item.remarks == "Holiday" or item.week_day in week_list:
